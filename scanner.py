@@ -12,35 +12,57 @@ def simulate_scan(target, intensity):
         "Resolving target address...",
         "Mapping network perimeter...",
         "Identifying service banners...",
-        "Testing vulnerability vectors...",
-        "Generating risk assessment..."
+        "Analyzing vulnerability vectors...",
+        "Mapping CVE database...",
+        "Calculating risk score...",
+        "Finalizing report..."
     ]
     
-    results = []
     for step in steps:
-        time.sleep(random.uniform(0.5, 1.5))
         print(f"[+] {step}", file=sys.stderr)
+        sys.stderr.flush()
+        time.sleep(0.3) # Faster simulation
         
-    # Simulate finding vulnerabilities
+    # Simulate finding vulnerabilities based on target and intensity
     vulnerabilities = []
-    if random.random() > 0.3:
-        vulnerabilities.append({
-            "type": "SQL Injection",
-            "severity": "critical",
-            "description": f"Potential SQL injection vulnerability found on {target} endpoint /api/v1/users"
-        })
-    if random.random() > 0.5:
-        vulnerabilities.append({
-            "type": "XSS Vulnerability",
-            "severity": "high",
-            "description": f"Reflected XSS vulnerability detected on {target} login page"
-        })
+    
+    # Common vulnerabilities pool
+    vuln_pool = [
+        {"type": "SQL Injection", "severity": "critical", "description": "Potential SQL injection vulnerability found on endpoint /api/v1/users"},
+        {"type": "XSS Vulnerability", "severity": "high", "description": "Reflected XSS vulnerability detected on login page"},
+        {"type": "Weak SSH Credentials", "severity": "high", "description": "Default or weak SSH credentials detected on port 22"},
+        {"type": "Outdated Nginx Version", "severity": "medium", "description": "The Nginx server version is outdated and contains known security vulnerabilities"},
+        {"type": "Exposed API Key", "severity": "high", "description": "A production API key was found in a publicly accessible configuration file"},
+        {"type": "Open Directory Listing", "severity": "low", "description": "Directory listing is enabled on /uploads directory"},
+        {"type": "Insecure CORS Policy", "severity": "medium", "description": "CORS policy allows access from any origin (*)"},
+        {"type": "Broken Authentication", "severity": "critical", "description": "Session tokens are not properly invalidated after logout"},
+        {"type": "Sensitive Data Exposure", "severity": "high", "description": "Unencrypted sensitive data found in response headers"},
+        {"type": "Security Misconfiguration", "severity": "medium", "description": "Default error pages are enabled, revealing system information"}
+    ]
+    
+    # Determine number of vulnerabilities based on intensity
+    num_vulns = 0
+    if "Stealth" in intensity:
+        num_vulns = random.randint(0, 2)
+    elif "Standard" in intensity:
+        num_vulns = random.randint(1, 4)
+    else: # Aggressive
+        num_vulns = random.randint(3, 7)
         
+    vulnerabilities = random.sample(vuln_pool, min(num_vulns, len(vuln_pool)))
+    
+    # Calculate a simulated risk score
+    severity_weights = {"critical": 25, "high": 15, "medium": 8, "low": 3}
+    base_score = 10
+    risk_score = base_score + sum(severity_weights.get(v["severity"], 0) for v in vulnerabilities)
+    risk_score = min(100, risk_score) # Cap at 100
+    
     return {
         "target": target,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "vulnerabilities": vulnerabilities,
-        "summary": f"Scan completed for {target}. Found {len(vulnerabilities)} vulnerabilities."
+        "riskScore": risk_score,
+        "summary": f"Scan completed for {target}. Found {len(vulnerabilities)} vulnerabilities with a risk score of {risk_score}/100."
     }
 
 if __name__ == "__main__":

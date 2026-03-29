@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer, collection, onSnapshot, query, where, addDoc, updateDoc, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer, collection, onSnapshot, query, where, addDoc, updateDoc, deleteDoc, setDoc, Timestamp, getDocs, writeBatch } from 'firebase/firestore';
 
 export { 
   doc, 
@@ -14,6 +14,8 @@ export {
   deleteDoc, 
   setDoc, 
   Timestamp,
+  getDocs,
+  writeBatch,
   signInWithPopup,
   onAuthStateChanged
 };

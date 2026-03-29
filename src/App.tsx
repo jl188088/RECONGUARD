@@ -58,6 +58,29 @@ import {
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { GoogleGenAI } from "@google/genai";
+import { 
+  auth, 
+  db, 
+  signInWithPopup, 
+  googleProvider, 
+  onAuthStateChanged, 
+  collection, 
+  onSnapshot, 
+  query, 
+  where, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  setDoc,
+  getDocFromServer,
+  getDocs,
+  writeBatch,
+  Timestamp,
+  handleFirestoreError,
+  OperationType
+} from './firebase';
+import type { User as FirebaseUser } from 'firebase/auth';
 
 // --- Theme Context ---
 const ThemeContext = createContext({ theme: 'theme-cyberpunk', setTheme: (t: string) => {} });
@@ -98,6 +121,7 @@ interface ScanHistoryEntry {
 interface ScanPreset {
   id: string;
   name: string;
+  target: string;
   intensity: string;
   mode: string;
 }
@@ -180,6 +204,77 @@ const MOCK_LOGS: LogEntry[] = [
 ];
 
 // --- Components ---
+
+const Login = ({ onLogin }: { onLogin: () => void }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      
+      // Initialize user profile in Firestore if it doesn't exist
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        role: 'user', // Default role
+        lastLogin: new Date().toISOString()
+      }, { merge: true });
+      
+      onLogin();
+    } catch (err: any) {
+      console.error("Login Error:", err);
+      setError(err.message || "Failed to sign in with Google");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+      <StarGalaxy />
+      <SpiderWeb />
+      
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-panel max-w-md w-full p-8 text-center relative z-10"
+      >
+        <Logo size={64} className="mx-auto mb-6 text-primary" />
+        <h1 className="text-3xl font-headline font-bold mb-2 tracking-tighter">RECONGUARD</h1>
+        <p className="text-on-surface-variant mb-8 font-body">Advanced Reconnaissance & Vulnerability Management</p>
+        
+        {error && (
+          <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm flex items-center gap-3">
+            <AlertTriangle size={18} />
+            {error}
+          </div>
+        )}
+        
+        <button
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-primary text-on-primary font-bold hover:bg-primary/90 transition-all disabled:opacity-50"
+        >
+          {loading ? (
+            <RefreshCw size={20} className="animate-spin" />
+          ) : (
+            <Globe size={20} />
+          )}
+          {loading ? "Authenticating..." : "Sign in with Google"}
+        </button>
+        
+        <p className="mt-8 text-[10px] text-on-surface-variant uppercase tracking-widest opacity-50">
+          Secure Access Required • Authorized Personnel Only
+        </p>
+      </motion.div>
+    </div>
+  );
+};
 
 const Logo = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
   <div className={`relative flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
@@ -401,7 +496,7 @@ const StarGalaxy = () => {
       
       {/* Distant Star Field (Static-ish) */}
       <div className="absolute inset-0 opacity-30">
-        {[...Array(500)].map((_, i) => (
+        {[...Array(300)].map((_, i) => (
           <div
             key={`static-star-${i}`}
             className="absolute bg-white rounded-full"
@@ -417,7 +512,7 @@ const StarGalaxy = () => {
       </div>
 
       {/* Twinkling Stars */}
-      {[...Array(250)].map((_, i) => (
+      {[...Array(150)].map((_, i) => (
         <motion.div
           key={`twinkle-star-${i}`}
           className="absolute bg-white rounded-full"
@@ -461,23 +556,6 @@ const StarGalaxy = () => {
           }}
         />
       ))}
-
-      {/* Central Galaxy Core Glow */}
-      <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[150px] mix-blend-screen pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle, rgba(0, 100, 255, 0.1) 0%, rgba(255, 0, 150, 0.05) 50%, transparent 80%)',
-        }}
-        animate={{
-          scale: [1, 1.1, 1],
-          opacity: [0.3, 0.5, 0.3],
-        }}
-        transition={{
-          duration: 15,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
 
       {/* Main Blue Nebulae (Vibrant Blue from Image) */}
       {[...Array(12)].map((_, i) => (
@@ -745,18 +823,6 @@ const Sidebar = ({ activeScreen, setScreen }: { activeScreen: Screen, setScreen:
 const Header = () => {
   const [search, setSearch] = useState('');
   const [showResults, setShowResults] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
-
-  const toggleNotifications = () => {
-    setShowNotifications(!showNotifications);
-    if (!showNotifications) setShowProfile(false);
-  };
-
-  const toggleProfile = () => {
-    setShowProfile(!showProfile);
-    if (!showProfile) setShowNotifications(false);
-  };
 
   const results = [
     { type: 'Asset', name: 'WEB-SRV-01', ip: '192.168.1.45' },
@@ -819,86 +885,6 @@ const Header = () => {
         <div className="flex items-center gap-2 px-4 py-2 bg-surface-variant/50 rounded-full border border-outline-variant/20">
           <Globe size={16} className="text-tertiary" />
           <span className="text-xs font-label text-on-surface-variant">US-EAST-1</span>
-        </div>
-        <div className="relative">
-          <button 
-            onClick={toggleNotifications}
-            className="relative p-2 text-on-surface-variant hover:text-primary transition-colors"
-          >
-            <Bell size={20} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-background" />
-          </button>
-          
-          <AnimatePresence>
-            {showNotifications && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="absolute top-full right-0 w-80 mt-2 glass-panel !bg-surface rounded-2xl border-outline-variant/20 shadow-2xl overflow-hidden z-50"
-              >
-                <div className="p-4 border-b border-outline-variant/10 flex justify-between items-center">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Notifications</span>
-                  <button className="text-[10px] text-on-surface-variant hover:text-primary">Mark all as read</button>
-                </div>
-                <div className="max-h-64 overflow-y-auto">
-                  {[
-                    { title: 'New Vulnerability Detected', time: '2m ago', desc: 'SQL Injection found on 192.168.1.45', urgent: true },
-                    { title: 'Scan Completed', time: '15m ago', desc: 'Full network audit finished successfully.', urgent: false },
-                    { title: 'Unauthorized Access Attempt', time: '1h ago', desc: 'Multiple failed login attempts from 10.0.0.15', urgent: true },
-                  ].map((n, i) => (
-                    <div key={i} className="p-4 hover:bg-primary/5 border-b border-outline-variant/5 last:border-none">
-                      <div className="flex justify-between items-start mb-1">
-                        <h5 className={`text-xs font-bold ${n.urgent ? 'text-error' : 'text-on-surface'}`}>{n.title}</h5>
-                        <span className="text-[10px] text-on-surface-variant">{n.time}</span>
-                      </div>
-                      <p className="text-[10px] text-on-surface-variant leading-tight">{n.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <div className="relative">
-          <button 
-            onClick={toggleProfile}
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary p-[1px] hover:scale-105 transition-transform"
-          >
-            <div className="w-full h-full rounded-full bg-surface flex items-center justify-center overflow-hidden">
-              <img src="https://picsum.photos/seed/user/100/100" alt="Avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-            </div>
-          </button>
-
-          <AnimatePresence>
-            {showProfile && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="absolute top-full right-0 w-56 mt-2 glass-panel !bg-surface rounded-2xl border-outline-variant/20 shadow-2xl overflow-hidden z-50"
-              >
-                <div className="p-4 border-b border-outline-variant/10 bg-transparent">
-                  <h5 className="text-sm font-bold">RG-772-X</h5>
-                  <p className="text-[10px] text-on-surface-variant">jayallep@gmail.com</p>
-                </div>
-                <div className="p-2">
-                  {[
-                    { icon: User, label: 'Profile Settings' },
-                    { icon: Shield, label: 'Security Center' },
-                    { icon: SettingsIcon, label: 'System Config' },
-                    { icon: LogOut, label: 'Logout', color: 'text-error' },
-                  ].map((item, i) => (
-                    <button key={i} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-primary/5 transition-colors text-xs font-label ${item.color || 'text-on-surface'}`}>
-                      <item.icon size={16} />
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
     </header>
@@ -1062,19 +1048,17 @@ const StatCard = ({ label, value, icon: Icon, color, trend, chartType }: any) =>
   );
 };
 
-const Dashboard = ({ onNavigate, onNewScan }: { onNavigate: (screen: Screen) => void, onNewScan: () => void }) => {
-  const stats: { 
-    label: string, 
-    value: string, 
-    icon: any, 
-    color: string, 
-    trend: string, 
-    chartType: 'bar' | 'pie' | 'line' | 'area' 
-  }[] = [
-    { label: 'Total Assets', value: '1,284', icon: Cpu, color: 'text-tertiary', trend: '+12%', chartType: 'pie' },
-    { label: 'Active Scans', value: '3', icon: Activity, color: 'text-primary', trend: 'Stable', chartType: 'line' },
-    { label: 'Vulnerabilities', value: '42', icon: ShieldAlert, color: 'text-error', trend: '-5%', chartType: 'bar' },
-    { label: 'Network Load', value: '24%', icon: Zap, color: 'text-secondary', trend: '+2%', chartType: 'area' },
+const Dashboard = ({ onNavigate, onNewScan, vulnerabilities, scanHistory }: { 
+  onNavigate: (screen: Screen) => void, 
+  onNewScan: () => void,
+  vulnerabilities: Vulnerability[],
+  scanHistory: ScanHistoryEntry[]
+}) => {
+  const stats = [
+    { label: 'Total Assets', value: '1,284', icon: Cpu, color: 'text-tertiary', trend: '+12%', chartType: 'pie' as const },
+    { label: 'Active Scans', value: scanHistory.filter(s => s.status === 'completed').length.toString(), icon: Activity, color: 'text-primary', trend: 'Stable', chartType: 'line' as const },
+    { label: 'Vulnerabilities', value: vulnerabilities.length.toString(), icon: ShieldAlert, color: 'text-error', trend: '-5%', chartType: 'bar' as const },
+    { label: 'Network Load', value: '24%', icon: Zap, color: 'text-secondary', trend: '+2%', chartType: 'area' as const },
   ];
 
   return (
@@ -1362,13 +1346,13 @@ const NetworkMap = ({ onScan }: { onScan: (target: string) => void }) => {
   );
 };
 
-const Vulnerabilities = () => {
+const Vulnerabilities = ({ vulnerabilities }: { vulnerabilities: Vulnerability[] }) => {
   const [hoveredVuln, setHoveredVuln] = useState<string | null>(null);
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredVulnerabilities = MOCK_VULNERABILITIES.filter(v => {
+  const filteredVulnerabilities = vulnerabilities.filter(v => {
     const matchesSeverity = filterSeverity === 'all' || v.severity === filterSeverity;
     const matchesStatus = filterStatus === 'all' || v.status === filterStatus;
     const matchesSearch = 
@@ -1379,10 +1363,10 @@ const Vulnerabilities = () => {
   });
 
   const severityStats = {
-    critical: { percent: 15, count: 6 },
-    high: { percent: 35, count: 15 },
-    medium: { percent: 40, count: 17 },
-    low: { percent: 10, count: 4 },
+    critical: { percent: (vulnerabilities.filter(v => v.severity === 'critical').length / (vulnerabilities.length || 1)) * 100, count: vulnerabilities.filter(v => v.severity === 'critical').length },
+    high: { percent: (vulnerabilities.filter(v => v.severity === 'high').length / (vulnerabilities.length || 1)) * 100, count: vulnerabilities.filter(v => v.severity === 'high').length },
+    medium: { percent: (vulnerabilities.filter(v => v.severity === 'medium').length / (vulnerabilities.length || 1)) * 100, count: vulnerabilities.filter(v => v.severity === 'medium').length },
+    low: { percent: (vulnerabilities.filter(v => v.severity === 'low').length / (vulnerabilities.length || 1)) * 100, count: vulnerabilities.filter(v => v.severity === 'low').length },
   };
 
   return (
@@ -1580,10 +1564,12 @@ const Vulnerabilities = () => {
       </div>
     </div>
   );
-};
-
-const Terminal = () => {
-  const [logs, setLogs] = useState<LogEntry[]>(MOCK_LOGS);
+};const Terminal = ({ user, logs, setScanTarget, setActiveScreen }: { 
+  user: FirebaseUser, 
+  logs: LogEntry[],
+  setScanTarget: (t: string) => void,
+  setActiveScreen: (s: any) => void
+}) => {
   const [input, setInput] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
@@ -1635,52 +1621,72 @@ const Terminal = () => {
     }
   }, [logs]);
 
-  const handleCommand = (e: React.FormEvent | string) => {
+  const handleCommand = async (e: React.FormEvent | string) => {
     if (typeof e !== 'string') e.preventDefault();
     const cmdToRun = typeof e === 'string' ? e : input;
     if (!cmdToRun.trim()) return;
 
-    const newLog: LogEntry = {
-      id: Date.now().toString(),
-      timestamp: new Date().toLocaleTimeString([], { hour12: false }),
-      level: 'info',
-      message: `> ${cmdToRun}`
-    };
-
-    setLogs(prev => [...prev, newLog]);
-    setHistory(prev => [cmdToRun, ...prev]);
-    setHistoryIndex(-1);
     setInput('');
     setSuggestions([]);
+    setHistory(prev => [cmdToRun, ...prev]);
+    setHistoryIndex(-1);
 
-    // Simulate response
-    setTimeout(() => {
-      const cmd = cmdToRun.toLowerCase().trim();
-      let responseMsg = `Command '${cmdToRun}' recognized. Processing...`;
-      let level: 'info' | 'success' | 'error' = 'info';
+    const parts = cmdToRun.trim().split(' ');
+    const command = parts[0].toLowerCase();
+    const args = parts.slice(1).join(' ');
 
-      if (cmd === 'clear') {
-        setLogs([]);
-        return;
-      } else if (cmd.startsWith('scan')) {
-        responseMsg = 'Scan initiated. Analyzing target vectors...';
-        level = 'success';
-      } else if (cmd === 'status') {
-        responseMsg = 'Engine: v2.4.0 | Node: RG-772-X | Status: OPTIMAL';
-        level = 'success';
-      } else if (cmd === 'help') {
-        setShowHelp(true);
-        return;
+    if (command === 'clear') {
+      try {
+        const q = query(collection(db, 'logs'), where('uid', '==', user.uid));
+        const snapshot = await getDocs(q);
+        const batch = writeBatch(db);
+        snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+      } catch (err) {
+        console.error("Clear failed:", err);
       }
+      return;
+    }
 
-      const response: LogEntry = {
-        id: (Date.now() + 1).toString(),
+    if (command === 'scan' && args) {
+      setScanTarget(args);
+      setActiveScreen('penetration');
+      return;
+    }
+
+    try {
+      // Add command log to Firestore
+      await addDoc(collection(db, 'logs'), {
         timestamp: new Date().toLocaleTimeString([], { hour12: false }),
-        level,
-        message: responseMsg
-      };
-      setLogs(prev => [...prev, response]);
-    }, 600);
+        level: 'info',
+        message: `> ${cmdToRun}`,
+        uid: user.uid
+      });
+
+      const response = await fetch('/api/terminal/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: cmdToRun })
+      });
+
+      if (!response.ok) throw new Error('Terminal command failed');
+      const data = await response.json();
+
+      // Add response log to Firestore
+      await addDoc(collection(db, 'logs'), {
+        timestamp: data.timestamp,
+        level: data.level,
+        message: data.message,
+        uid: user.uid
+      });
+    } catch (err) {
+      await addDoc(collection(db, 'logs'), {
+        timestamp: new Date().toLocaleTimeString([], { hour12: false }),
+        level: 'error',
+        message: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        uid: user.uid
+      });
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -1736,7 +1742,7 @@ const Terminal = () => {
             <span className="text-sm font-label">Command Guide</span>
           </button>
           <button 
-            onClick={() => setLogs([])}
+            onClick={() => {}}
             className="flex items-center gap-2 px-4 py-2 bg-surface-variant/50 rounded-xl border border-outline-variant/20 hover:bg-surface-bright transition-colors"
           >
             <RefreshCw size={16} />
@@ -1857,7 +1863,12 @@ const Terminal = () => {
   );
 };
 
-const Penetration = ({ initialTarget = '' }: { initialTarget?: string }) => {
+const Penetration = ({ initialTarget = '', user, scanHistory, scanPresets }: { 
+  initialTarget?: string, 
+  user: FirebaseUser,
+  scanHistory: ScanHistoryEntry[],
+  scanPresets: ScanPreset[]
+}) => {
   const [target, setTarget] = useState(initialTarget);
   const [intensity, setIntensity] = useState('Standard (Balanced)');
   const [engineMode, setEngineMode] = useState('Automated');
@@ -1865,41 +1876,9 @@ const Penetration = ({ initialTarget = '' }: { initialTarget?: string }) => {
   const [steps, setSteps] = useState<{ msg: string, status: 'pending' | 'active' | 'done' }[]>([]);
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
-  const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([
-    { 
-      id: 'SCAN-001', 
-      target: '192.168.1.45', 
-      date: '2026-03-24 10:15', 
-      status: 'completed', 
-      report: 'Initial scan found 3 critical vulnerabilities related to SQL injection and exposed service banners.', 
-      intensity: 'Aggressive (Deep)', 
-      mode: 'Automated',
-      riskScore: 88,
-      findings: [
-        { severity: 'critical', title: 'SQL Injection', description: 'Unsanitized input in login parameter allows database exfiltration.' },
-        { severity: 'high', title: 'Exposed SSH', description: 'SSH service version 7.2p2 is vulnerable to remote code execution.' },
-        { severity: 'medium', title: 'Information Disclosure', description: 'Server header reveals detailed OS and software versions.' }
-      ]
-    },
-    { 
-      id: 'SCAN-002', 
-      target: 'api.production.internal', 
-      date: '2026-03-24 14:20', 
-      status: 'completed', 
-      report: 'API endpoint analysis revealed exposed credentials in debug logs and weak SSL configuration.', 
-      intensity: 'Standard (Balanced)', 
-      mode: 'Automated',
-      riskScore: 65,
-      findings: [
-        { severity: 'high', title: 'Exposed Credentials', description: 'AWS access keys found in plaintext in /debug/env endpoint.' },
-        { severity: 'medium', title: 'Weak SSL', description: 'Support for TLS 1.0/1.1 detected. Recommended to upgrade to 1.2+.' }
-      ]
-    },
-  ]);
-  const [presets, setPresets] = useState<ScanPreset[]>([
-    { id: 'PRE-001', name: 'Stealth Recon', intensity: 'Stealth (Passive)', mode: 'Automated' },
-    { id: 'PRE-002', name: 'Full Audit', intensity: 'Aggressive (Deep)', mode: 'Manual Override' },
-  ]);
+  const [currentRiskScore, setCurrentRiskScore] = useState<number | null>(null);
+  const [liveLogs, setLiveLogs] = useState<{ msg: string, level: 'info' | 'success' | 'warn' | 'error' }[]>([]);
+  
   const [selectedHistory, setSelectedHistory] = useState<ScanHistoryEntry | null>(null);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   
@@ -1907,21 +1886,41 @@ const Penetration = ({ initialTarget = '' }: { initialTarget?: string }) => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (initialTarget) {
+      setTarget(initialTarget);
+      // Start analysis automatically if triggered from outside
+      startAnalysis(initialTarget);
+    }
+  }, [initialTarget]);
+
+  useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
-  const savePreset = () => {
+  const savePreset = async () => {
     const name = prompt('Enter preset name:');
     if (!name) return;
-    const newPreset: ScanPreset = {
-      id: `PRE-${Date.now()}`,
-      name,
-      intensity,
-      mode: engineMode
-    };
-    setPresets([...presets, newPreset]);
+    try {
+      await addDoc(collection(db, 'scanPresets'), {
+        name,
+        intensity,
+        mode: engineMode,
+        uid: user.uid,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Add log
+      await addDoc(collection(db, 'logs'), {
+        timestamp: new Date().toLocaleTimeString(),
+        level: 'success',
+        message: `Preset "${name}" saved successfully.`,
+        uid: user.uid
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'scanPresets');
+    }
   };
 
   const loadPreset = (preset: ScanPreset) => {
@@ -1943,68 +1942,101 @@ const Penetration = ({ initialTarget = '' }: { initialTarget?: string }) => {
     ]);
   };
 
-  const generateAiAnalysis = async (target: string) => {
+  const generateAiAnalysis = async (target: string, scanResult: any) => {
     setIsGeneratingAi(true);
-    const prompt = `As a cybersecurity expert, provide a brief risk analysis for a penetration test on the target: ${target}. Include potential vulnerabilities like SQL injection, XSS, and weak credentials. Keep it professional and concise.`;
+    setLiveLogs(prev => [...prev, { msg: 'Initiating AI-powered threat analysis...', level: 'info' }]);
+    
+    if (!process.env.GEMINI_API_KEY) {
+      const errorMsg = 'Error: GEMINI_API_KEY is not configured in the environment.';
+      setLiveLogs(prev => [...prev, { msg: errorMsg, level: 'error' }]);
+      setAiReport(errorMsg);
+      await addToHistory(target, errorMsg, scanResult);
+      setIsGeneratingAi(false);
+      return;
+    }
+
+    const prompt = `As a cybersecurity expert, provide a detailed risk analysis for a penetration test on the target: ${target}. 
+    The scan found the following vulnerabilities: ${JSON.stringify(scanResult.vulnerabilities)}.
+    The calculated risk score is ${scanResult.riskScore}/100.
+    
+    Please provide:
+    1. An executive summary of the security posture.
+    2. A breakdown of the most critical threats found.
+    3. Actionable recommendations for mitigation.
+    
+    Keep it professional, technical, and concise.`;
 
     try {
-      // Try Ollama first
-      const ollamaResponse = await fetch('http://localhost:11434/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'llama3',
-          prompt: prompt,
-          stream: false
-        })
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
       });
-
-      if (ollamaResponse.ok) {
-        const data = await ollamaResponse.json();
-        const report = data.response;
-        setAiReport(report);
-        addToHistory(target, report);
-      } else {
-        throw new Error('Ollama not available');
-      }
-    } catch (error) {
-      console.warn('Ollama failed, falling back to Gemini:', error);
-      // Fallback to Gemini
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-        const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: prompt,
-        });
-        const report = response.text || 'Analysis generation failed.';
-        setAiReport(report);
-        addToHistory(target, report);
-      } catch (geminiError) {
-        console.error('Gemini failed too:', geminiError);
-        const report = 'Error: AI analysis service unavailable. Please check Ollama or Gemini configuration.';
-        setAiReport(report);
-      }
+      const report = response.text || 'Analysis generation failed.';
+      setAiReport(report);
+      setLiveLogs(prev => [...prev, { msg: 'AI analysis report generated successfully.', level: 'success' }]);
+      await addToHistory(target, report, scanResult);
+    } catch (geminiError) {
+      console.error('Gemini failed:', geminiError);
+      const errorMsg = `AI analysis failed: ${geminiError instanceof Error ? geminiError.message : 'Service unavailable'}`;
+      setLiveLogs(prev => [...prev, { msg: errorMsg, level: 'error' }]);
+      const report = 'Error: AI analysis service unavailable. Please check Gemini configuration.';
+      setAiReport(report);
+      await addToHistory(target, report, scanResult);
     } finally {
       setIsGeneratingAi(false);
     }
   };
 
-  const addToHistory = (target: string, report: string) => {
-    const newEntry: ScanHistoryEntry = {
-      id: `SCAN-${Date.now()}`,
+  const addToHistory = async (target: string, report: string, scanResult: any) => {
+    const findings = scanResult.vulnerabilities.map((v: any) => ({
+      severity: v.severity,
+      title: v.type,
+      description: v.description
+    }));
+
+    if (findings.length === 0) {
+      findings.push({ severity: 'low', title: 'Clean Scan', description: 'No immediate vulnerabilities detected during this phase.' });
+    }
+
+    const newEntry = {
       target,
       date: new Date().toLocaleString(),
       status: 'completed',
       report,
       intensity,
       mode: engineMode,
-      riskScore: Math.floor(Math.random() * 40) + 30, // Random score for demo
-      findings: [
-        { severity: 'medium', title: 'Service Discovery', description: 'Multiple open ports identified during reconnaissance phase.' },
-        { severity: 'low', title: 'Header Analysis', description: 'Standard security headers are missing or misconfigured.' }
-      ]
+      riskScore: scanResult.riskScore || 0,
+      findings,
+      uid: user.uid
     };
-    setScanHistory(prev => [newEntry, ...prev]);
+
+    try {
+      await addDoc(collection(db, 'scanHistory'), newEntry);
+      
+      // Also add vulnerabilities to the vulnerabilities collection
+      for (const v of scanResult.vulnerabilities) {
+        await addDoc(collection(db, 'vulnerabilities'), {
+          target,
+          type: v.type,
+          severity: v.severity,
+          status: 'open',
+          timestamp: new Date().toISOString(),
+          description: v.description,
+          uid: user.uid
+        });
+      }
+
+      // Add log
+      await addDoc(collection(db, 'logs'), {
+        timestamp: new Date().toLocaleTimeString(),
+        level: 'success',
+        message: `Scan completed for ${target}. Found ${scanResult.vulnerabilities.length} vulnerabilities.`,
+        uid: user.uid
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'scanHistory');
+    }
   };
 
   const downloadPdf = async () => {
@@ -2019,11 +2051,43 @@ const Penetration = ({ initialTarget = '' }: { initialTarget?: string }) => {
     pdf.save(`RECONGUARD_Report_${target.replace(/[^a-z0-9]/gi, '_')}.pdf`);
   };
 
-  const startAnalysis = () => {
-    if (!target) return;
+  const purgeHistory = async () => {
+    const confirmed = window.confirm('Are you sure you want to purge all scan history? This action is irreversible.');
+    if (!confirmed) return;
+    try {
+      const q = query(collection(db, 'scanHistory'), where('uid', '==', user.uid));
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+      
+      await addDoc(collection(db, 'logs'), {
+        timestamp: new Date().toLocaleTimeString(),
+        level: 'warn',
+        message: 'Scan history purged by operator.',
+        uid: user.uid
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, 'scanHistory');
+    }
+  };
+
+  const deleteHistoryItem = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteDoc(doc(db, 'scanHistory', id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, 'scanHistory');
+    }
+  };
+
+  const startAnalysis = async (targetOverride?: string) => {
+    const finalTarget = targetOverride || target;
+    if (!finalTarget) return;
     setIsAnalyzing(true);
     setAiReport(null);
-    setSelectedHistory(null);
+    setCurrentRiskScore(null);
+    setLiveLogs([{ msg: `Initializing scan on ${finalTarget}...`, level: 'info' }]);
     setSteps([
       { msg: 'Resolving target address...', status: 'active' },
       { msg: 'Mapping network perimeter...', status: 'pending' },
@@ -2032,21 +2096,89 @@ const Penetration = ({ initialTarget = '' }: { initialTarget?: string }) => {
       { msg: 'Generating risk assessment...', status: 'pending' },
     ]);
 
-    let currentStep = 0;
-    intervalRef.current = setInterval(() => {
-      setSteps(prev => prev.map((s, i) => {
-        if (i < currentStep) return { ...s, status: 'done' };
-        if (i === currentStep) return { ...s, status: 'active' };
-        return s;
-      }));
+    try {
+      // Add log (non-blocking)
+      addDoc(collection(db, 'logs'), {
+        timestamp: new Date().toLocaleTimeString(),
+        level: 'info',
+        message: `Initiating scan on ${finalTarget}...`,
+        uid: user.uid
+      }).catch(e => console.warn('Failed to save log to Firestore:', e));
 
-      currentStep++;
-      if (currentStep > 5) {
+      // Start visual simulation steps immediately
+      let currentStep = 0;
+      const totalSteps = 5;
+      intervalRef.current = setInterval(() => {
+        setSteps(prev => prev.map((s, i) => {
+          if (i < currentStep) return { ...s, status: 'done' };
+          if (i === currentStep) return { ...s, status: 'active' };
+          return s;
+        }));
+        currentStep++;
+        if (currentStep > totalSteps) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+        }
+      }, 800);
+
+      // Call Backend API
+      const response = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target: finalTarget, intensity, mode: engineMode })
+      });
+
+      let scanResult;
+      if (!response.ok) {
+        console.warn('Backend scan failed, falling back to simulation.');
+        setLiveLogs(prev => [...prev, { msg: 'Backend unavailable. Using local simulation engine.', level: 'warn' }]);
+        
+        // Mock result for simulation fallback
+        scanResult = {
+          target: finalTarget,
+          riskScore: Math.floor(Math.random() * 40) + 30,
+          vulnerabilities: [
+            { id: 'SIM-001', type: 'Potential SQL Injection', severity: 'high', target: finalTarget, description: 'Simulated vulnerability for testing.' },
+            { id: 'SIM-002', type: 'Weak SSH Config', severity: 'medium', target: finalTarget, description: 'Simulated vulnerability for testing.' }
+          ]
+        };
+      } else {
+        const data = await response.json();
+        setLiveLogs(prev => [...prev, { msg: `Backend scan completed (ID: ${data.scanId}).`, level: 'success' }]);
+        scanResult = data.result;
+      }
+      
+      if (scanResult && scanResult.riskScore !== undefined) {
+        setCurrentRiskScore(scanResult.riskScore);
+      }
+      
+      // Wait for visual steps to finish if they haven't
+      const checkFinished = setInterval(() => {
+        if (currentStep >= totalSteps) {
+          clearInterval(checkFinished);
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          setIsAnalyzing(false);
+          generateAiAnalysis(finalTarget, scanResult);
+        }
+      }, 500);
+
+    } catch (err) {
+      console.error("Scan Error:", err);
+      setLiveLogs(prev => [...prev, { msg: `Scan Error: ${err instanceof Error ? err.message : 'Unknown error'}. Switching to simulation.`, level: 'warn' }]);
+      
+      // Final fallback to simulation
+      const mockResult = {
+        target: finalTarget,
+        riskScore: 45,
+        vulnerabilities: [{ id: 'SIM-ERR', type: 'Network Timeout', severity: 'low', target: finalTarget, description: 'Scan completed with simulated data due to backend error.' }]
+      };
+      
+      setCurrentRiskScore(mockResult.riskScore);
+      setTimeout(() => {
         if (intervalRef.current) clearInterval(intervalRef.current);
         setIsAnalyzing(false);
-        generateAiAnalysis(target);
-      }
-    }, 1500);
+        generateAiAnalysis(finalTarget, mockResult);
+      }, 2000);
+    }
   };
 
   const progress = steps.length > 0 
@@ -2199,11 +2331,14 @@ const Penetration = ({ initialTarget = '' }: { initialTarget?: string }) => {
             <div className="flex items-center justify-between">
               <label className="block text-xs font-label text-on-surface-variant uppercase tracking-widest">Target IP or Domain</label>
               <div className="flex gap-2">
-                <span className="text-[10px] font-mono text-primary uppercase">Presets:</span>
-                {presets.map(p => (
+                {scanPresets.map(p => (
                   <button 
                     key={p.id} 
-                    onClick={() => loadPreset(p)}
+                    onClick={() => {
+                      setTarget(p.target);
+                      setIntensity(p.intensity);
+                      setEngineMode(p.mode);
+                    }}
                     className="text-[10px] font-mono text-on-surface-variant hover:text-primary transition-colors border-b border-outline-variant/20"
                   >
                     {p.name}
@@ -2250,7 +2385,7 @@ const Penetration = ({ initialTarget = '' }: { initialTarget?: string }) => {
             </div>
 
             <button 
-              onClick={startAnalysis}
+              onClick={() => startAnalysis()}
               disabled={isAnalyzing || !target}
               className="w-full py-4 bg-primary text-surface font-headline font-bold rounded-2xl hover:opacity-90 transition-opacity neon-glow-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
             >
@@ -2270,7 +2405,18 @@ const Penetration = ({ initialTarget = '' }: { initialTarget?: string }) => {
           </div>
 
           <div className="glass-panel rounded-3xl p-8">
-            <h3 className="text-xl font-headline font-bold mb-6">Scan History</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-headline font-bold">Scan History</h3>
+              {scanHistory.length > 0 && (
+                <button 
+                  onClick={purgeHistory}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-error/10 text-error rounded-xl border border-error/20 hover:bg-error/20 transition-colors text-xs font-label"
+                >
+                  <AlertTriangle size={14} />
+                  <span>Purge History</span>
+                </button>
+              )}
+            </div>
             <div className="space-y-4">
               {scanHistory.map((entry) => (
                 <div 
@@ -2295,7 +2441,16 @@ const Penetration = ({ initialTarget = '' }: { initialTarget?: string }) => {
                     }`}>
                       {entry.status}
                     </span>
-                    <ChevronRight size={16} className="text-on-surface-variant group-hover:text-primary transition-colors" />
+                    <div className="flex items-center gap-2">
+                      <ChevronRight size={16} className="text-on-surface-variant group-hover:text-primary transition-colors" />
+                      <button 
+                        onClick={(e) => deleteHistoryItem(entry.id, e)}
+                        className="p-2 hover:bg-error/10 text-on-surface-variant hover:text-error rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="Delete entry"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -2304,62 +2459,108 @@ const Penetration = ({ initialTarget = '' }: { initialTarget?: string }) => {
         </div>
 
         <div className="glass-panel rounded-3xl p-8 flex flex-col overflow-hidden">
-          <h3 className="text-xl font-headline font-bold mb-6">Analysis Feed</h3>
-          <div className="flex-1 space-y-6 overflow-y-auto pr-2">
-            {steps.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
-                <Search size={48} className="mb-4" />
-                <p className="text-sm font-label">Enter a target and start analysis to see live results.</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {steps.map((step, i) => (
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-headline font-bold">Analysis Feed</h3>
+            {liveLogs.length > 0 && (
+              <span className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest animate-pulse">Live Feed Active</span>
+            )}
+          </div>
+          
+          <div className="flex-1 flex flex-col gap-6 overflow-hidden">
+            <div className="space-y-4 max-h-[40%] overflow-y-auto pr-2 custom-scrollbar">
+              {steps.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center opacity-30 py-12">
+                  <Search size={48} className="mb-4" />
+                  <p className="text-sm font-label">Enter a target and start analysis to see live results.</p>
+                </div>
+              ) : (
+                steps.map((step, i) => (
                   <motion.div 
                     key={i}
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="flex items-center gap-4"
                   >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center border ${
                       step.status === 'done' ? 'bg-tertiary/20 border-tertiary text-tertiary' :
                       step.status === 'active' ? 'bg-primary/20 border-primary text-primary animate-pulse' :
                       'bg-surface-variant border-outline-variant/20 text-on-surface-variant'
                     }`}>
-                      {step.status === 'done' ? <CheckCircle2 size={16} /> : <div className="w-1.5 h-1.5 rounded-full bg-current" />}
+                      {step.status === 'done' ? <CheckCircle2 size={12} /> : <div className="w-1 h-1 rounded-full bg-current" />}
                     </div>
-                    <span className={`text-sm font-label ${step.status === 'active' ? 'text-on-surface font-bold' : 'text-on-surface-variant'}`}>
+                    <span className={`text-xs font-label ${step.status === 'active' ? 'text-on-surface font-bold' : 'text-on-surface-variant'}`}>
                       {step.msg}
                     </span>
                   </motion.div>
-                ))}
+                ))
+              )}
+            </div>
 
-                {(isGeneratingAi || aiReport) && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-8 p-6 rounded-2xl bg-primary/5 border border-primary/10"
-                    ref={reportRef}
-                  >
-                    <div className="flex items-center gap-2 mb-4 text-primary">
-                      <Sparkles size={18} />
-                      <h4 className="text-sm font-bold uppercase tracking-widest">AI Threat Analysis</h4>
+            {liveLogs.length > 0 && (
+              <div className="p-4 bg-black/40 rounded-xl border border-outline-variant/10 font-mono text-[10px] space-y-1 overflow-y-auto max-h-[30%] custom-scrollbar">
+                {liveLogs.map((log, i) => (
+                  <div key={i} className={`flex gap-2 ${
+                    log.level === 'error' ? 'text-error' : 
+                    log.level === 'success' ? 'text-tertiary' : 
+                    log.level === 'warn' ? 'text-secondary' : 'text-on-surface-variant'
+                  }`}>
+                    <span className="opacity-50">[{new Date().toLocaleTimeString()}]</span>
+                    <span>{log.msg}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              {(isGeneratingAi || aiReport) && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-6 rounded-2xl bg-primary/5 border border-primary/10"
+                  ref={reportRef}
+                >
+                  <div className="flex items-center gap-2 mb-4 text-primary">
+                    <Sparkles size={18} />
+                    <h4 className="text-sm font-bold uppercase tracking-widest">AI Threat Analysis</h4>
+                  </div>
+                  
+                  {isGeneratingAi ? (
+                    <div className="flex flex-col gap-3">
+                      <div className="h-3 w-full bg-primary/10 rounded-full animate-pulse" />
+                      <div className="h-3 w-5/6 bg-primary/10 rounded-full animate-pulse" />
+                      <div className="h-3 w-4/6 bg-primary/10 rounded-full animate-pulse" />
                     </div>
-                    
-                    {isGeneratingAi ? (
-                      <div className="flex flex-col gap-3">
-                        <div className="h-3 w-full bg-primary/10 rounded-full animate-pulse" />
-                        <div className="h-3 w-5/6 bg-primary/10 rounded-full animate-pulse" />
-                        <div className="h-3 w-4/6 bg-primary/10 rounded-full animate-pulse" />
-                      </div>
-                    ) : (
+                  ) : (
+                    <div className="space-y-6">
+                      {currentRiskScore !== null && (
+                        <div className="p-4 rounded-xl bg-surface-variant/20 border border-outline-variant/10">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Calculated Risk Score</span>
+                            <span className={`text-lg font-bold ${
+                              currentRiskScore > 80 ? 'text-error' : 
+                              currentRiskScore > 50 ? 'text-primary' : 'text-tertiary'
+                            }`}>{currentRiskScore}/100</span>
+                          </div>
+                          <div className="h-2 w-full bg-surface-variant rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${currentRiskScore}%` }}
+                              className={`h-full ${
+                                currentRiskScore > 80 ? 'bg-error' : 
+                                currentRiskScore > 50 ? 'bg-primary' : 'bg-tertiary'
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      )}
                       <div className="text-sm text-on-surface-variant leading-relaxed whitespace-pre-wrap font-body">
                         {aiReport}
                       </div>
-                    )}
-                  </motion.div>
-                )}
-              </div>
-            )}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </div>
           </div>
           {isAnalyzing && (
             <div className="mt-8 p-4 rounded-xl bg-primary/10 border border-primary/20">
@@ -2383,31 +2584,23 @@ const Penetration = ({ initialTarget = '' }: { initialTarget?: string }) => {
 };
 
 const AboutDeveloper = () => {
+  const [isFlowchartExpanded, setIsFlowchartExpanded] = useState(false);
   const projectStructure = [
     { name: 'src/', type: 'folder', children: [
-      { name: 'components/', type: 'folder', children: [
-        { name: 'ui/', type: 'folder', children: [] },
-        { name: 'Header.tsx', type: 'file' },
-        { name: 'Sidebar.tsx', type: 'file' },
-      ]},
-      { name: 'lib/', type: 'folder', children: [
-        { name: 'utils.ts', type: 'file' },
-      ]},
       { name: 'App.tsx', type: 'file' },
+      { name: 'firebase.ts', type: 'file' },
       { name: 'index.css', type: 'file' },
       { name: 'main.tsx', type: 'file' },
     ]},
     { name: 'backend/', type: 'folder', children: [
-      { name: 'engine.py', type: 'file' },
       { name: 'scanner.py', type: 'file' },
-      { name: 'vulnerability_db.py', type: 'file' },
-      { name: 'penetration_tester.py', type: 'file' },
-      { name: 'network_analyzer.py', type: 'file' },
+      { name: 'logic.py', type: 'file' },
     ]},
-    { name: 'public/', type: 'folder', children: [] },
+    { name: 'server.ts', type: 'file' },
+    { name: 'firestore.rules', type: 'file' },
+    { name: 'firebase-blueprint.json', type: 'file' },
+    { name: 'metadata.json', type: 'file' },
     { name: 'package.json', type: 'file' },
-    { name: 'vite.config.ts', type: 'file' },
-    { name: 'tailwind.config.ts', type: 'file' },
   ];
 
   const renderTree = (items: any[], depth = 0) => {
@@ -2434,21 +2627,15 @@ const AboutDeveloper = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-8">
           <div className="glass-panel rounded-3xl p-8 flex flex-col items-center text-center">
-            <div className="w-48 h-48 rounded-2xl overflow-hidden border-2 border-primary neon-glow-primary mb-6">
-              <img 
-                src="https://picsum.photos/seed/jayalle/400/600" 
-                alt="Jayalle Pangilinan" 
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
+            <div className="w-48 h-48 rounded-2xl overflow-hidden border-2 border-primary neon-glow-primary mb-6 flex items-center justify-center bg-surface-variant/20">
+              <User size={120} className="text-primary/40" />
             </div>
             <h3 className="text-2xl font-headline font-bold text-primary">Jayalle Pangilinan</h3>
-            <p className="text-sm font-label text-on-surface-variant mt-2 uppercase tracking-widest">Lead Systems Architect</p>
             
             <div className="mt-8 space-y-4 text-left w-full">
               <div className="p-4 rounded-2xl bg-surface-variant/30 border border-outline-variant/10">
                 <h4 className="text-[10px] font-label text-primary uppercase tracking-widest mb-2">Education</h4>
-                <p className="text-sm font-body leading-relaxed">Graduated BS Computer Science with a focus on distributed systems.</p>
+                <p className="text-sm font-body leading-relaxed">Graduated Bachelor of Science in Computer Science in Technological Institute of the Philippines - Manila.</p>
               </div>
               <div className="p-4 rounded-2xl bg-surface-variant/30 border border-outline-variant/10">
                 <h4 className="text-[10px] font-label text-secondary uppercase tracking-widest mb-2">Specialization</h4>
@@ -2463,13 +2650,21 @@ const AboutDeveloper = () => {
         </div>
 
         <div className="lg:col-span-2 space-y-8">
-          <section className="glass-panel rounded-3xl p-8">
-            <h3 className="text-xl font-headline font-bold mb-6 flex items-center gap-3">
-              <Activity size={20} className="text-primary" />
-              System Architecture Flowchart
-            </h3>
-            <div className="p-8 bg-surface-variant/20 rounded-2xl border border-outline-variant/10 flex flex-col items-center gap-8 overflow-x-auto">
-              <svg width="800" height="750" viewBox="0 0 800 750" className="max-w-full">
+          <section className={`glass-panel rounded-3xl p-8 transition-all duration-500 ${isFlowchartExpanded ? 'fixed inset-4 z-[100] overflow-y-auto bg-surface/95 backdrop-blur-2xl' : ''}`}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-headline font-bold flex items-center gap-3">
+                <Activity size={20} className="text-primary" />
+                System Architecture Flowchart
+              </h3>
+              <button 
+                onClick={() => setIsFlowchartExpanded(!isFlowchartExpanded)}
+                className="p-2 rounded-xl bg-surface-variant/50 text-on-surface-variant hover:text-primary transition-all border border-outline-variant/20"
+              >
+                {isFlowchartExpanded ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+              </button>
+            </div>
+            <div className={`p-8 bg-surface-variant/20 rounded-2xl border border-outline-variant/10 flex flex-col items-center gap-8 overflow-x-auto ${isFlowchartExpanded ? 'min-h-[800px]' : ''}`}>
+              <svg width="800" height="750" viewBox="0 0 800 750" className={`max-w-full transition-transform duration-500 ${isFlowchartExpanded ? 'scale-110' : 'scale-100'}`}>
                 {/* Step 1 */}
                 <rect x="300" y="20" width="200" height="50" rx="8" className="fill-primary/20 stroke-primary stroke-2" />
                 <text x="400" y="45" textAnchor="middle" className="fill-on-surface text-[10px] font-mono font-bold uppercase">User Input</text>
@@ -2608,50 +2803,149 @@ const AboutDeveloper = () => {
   );
 };
 
-const Settings = () => {
+const Settings = ({ user }: { user: FirebaseUser }) => {
   const { theme, setTheme } = useTheme();
-  const [tfaEnabled, setTfaEnabled] = useState(true);
-  const [sessionLogging, setSessionLogging] = useState(false);
-  const [encryptedBackups, setEncryptedBackups] = useState(true);
   
-  // Optimization State
-  const [isOptimizing, setIsOptimizing] = useState(false);
-  const [optProgress, setOptProgress] = useState(0);
-
   // Data Management State
   const [isExporting, setIsExporting] = useState(false);
   const [isPurging, setIsPurging] = useState(false);
 
-  const startOptimization = () => {
-    setIsOptimizing(true);
-    setOptProgress(0);
-    const interval = setInterval(() => {
-      setOptProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(() => setIsOptimizing(false), 1000);
-          return 100;
+  // Profile State
+  const [alias, setAlias] = useState(user.displayName || '');
+  const [isSavingAlias, setIsSavingAlias] = useState(false);
+
+  // Load settings from Firestore
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'users', user.uid), (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setAlias(data.displayName || user.displayName || '');
+        if (data.settings) {
+          if (data.settings.theme && data.settings.theme !== theme) {
+            setTheme(data.settings.theme);
+          }
         }
-        return prev + 5;
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
+    });
+    return () => unsub();
+  }, [user.uid, theme, setTheme]);
+
+  const updateSetting = async (key: string, value: any) => {
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        [`settings.${key}`]: value
       });
-    }, 100);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`);
+    }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     setIsExporting(true);
-    setTimeout(() => {
+    try {
+      // Fetch all user data
+      const historyQ = query(collection(db, 'scanHistory'), where('uid', '==', user.uid));
+      const vulnerabilitiesQ = query(collection(db, 'vulnerabilities'), where('uid', '==', user.uid));
+      const logsQ = query(collection(db, 'logs'), where('uid', '==', user.uid));
+
+      const [historySnap, vulnerabilitiesSnap, logsSnap] = await Promise.all([
+        getDocs(historyQ),
+        getDocs(vulnerabilitiesQ),
+        getDocs(logsQ)
+      ]);
+
+      const data = {
+        user: {
+          email: user.email,
+          displayName: user.displayName,
+          uid: user.uid
+        },
+        scanHistory: historySnap.docs.map(d => ({ id: d.id, ...d.data() })),
+        vulnerabilities: vulnerabilitiesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+        logs: logsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+        exportedAt: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RECONGUARD_Export_${user.uid.substring(0, 8)}_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // Log export
+      await addDoc(collection(db, 'logs'), {
+        timestamp: new Date().toLocaleTimeString(),
+        level: 'info',
+        message: 'User data package exported successfully.',
+        uid: user.uid
+      });
+    } catch (err) {
+      console.error('Export failed:', err);
+    } finally {
       setIsExporting(false);
-      alert('Encrypted data package exported successfully.');
-    }, 2000);
+    }
   };
 
-  const handlePurge = () => {
-    if(confirm('Are you sure you want to purge all scan history? This action is irreversible.')) {
-      setIsPurging(true);
-      setTimeout(() => {
-        setIsPurging(false);
-        alert('Scan history purged.');
-      }, 1500);
+  const handlePurge = async () => {
+    // Custom modal instead of confirm
+    const confirmed = window.confirm('Are you sure you want to purge all scan history? This action is irreversible.');
+    if (!confirmed) return;
+
+    setIsPurging(true);
+    try {
+      const q = query(collection(db, 'scanHistory'), where('uid', '==', user.uid));
+      const snapshot = await getDocs(q);
+      
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      
+      await batch.commit();
+      
+      // Log purge
+      await addDoc(collection(db, 'logs'), {
+        timestamp: new Date().toLocaleTimeString(),
+        level: 'warn',
+        message: 'Scan history purged by operator.',
+        uid: user.uid
+      });
+      
+      alert('Scan history purged successfully.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, 'scanHistory');
+    } finally {
+      setIsPurging(false);
+    }
+  };
+
+  const handleLogout = () => {
+    auth.signOut();
+  };
+
+  const handleSaveAlias = async () => {
+    setIsSavingAlias(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        displayName: alias
+      });
+      // Log alias update
+      await addDoc(collection(db, 'logs'), {
+        timestamp: new Date().toLocaleTimeString(),
+        level: 'info',
+        message: `Operator alias updated to: ${alias}`,
+        uid: user.uid
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}`);
+    } finally {
+      setIsSavingAlias(false);
     }
   };
 
@@ -2674,70 +2968,38 @@ const Settings = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-label text-on-surface-variant uppercase tracking-widest">Operator Alias</label>
-                <input type="text" defaultValue="RG-772-X" className="w-full bg-surface-variant/50 border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50" />
+                <div className="flex gap-2">
+                  <input 
+                    type="text"
+                    value={alias}
+                    onChange={(e) => setAlias(e.target.value)}
+                    className="flex-1 bg-surface-variant/50 border border-outline-variant/20 rounded-xl px-4 py-3 text-sm text-on-surface focus:outline-none focus:border-primary/50 transition-colors"
+                    placeholder="Enter alias..."
+                  />
+                  <button 
+                    onClick={handleSaveAlias}
+                    disabled={isSavingAlias || alias === user.displayName}
+                    className="px-4 py-2 bg-primary/10 text-primary rounded-xl border border-primary/20 hover:bg-primary/20 transition-all disabled:opacity-30"
+                  >
+                    {isSavingAlias ? <RefreshCw size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                  </button>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-label text-on-surface-variant uppercase tracking-widest">Security Clearance</label>
-                <div className="w-full bg-surface-variant/50 border border-outline-variant/20 rounded-xl px-4 py-3 text-sm text-tertiary font-bold">LEVEL 5 - OVERSEER</div>
+                <div className="w-full bg-surface-variant/50 border border-outline-variant/20 rounded-xl px-4 py-3 text-sm text-tertiary font-bold uppercase">
+                  {user.email === 'jayallep@gmail.com' ? 'LEVEL 5 - OVERSEER' : 'LEVEL 1 - OPERATOR'}
+                </div>
               </div>
               <div className="space-y-2 md:col-span-2">
                 <label className="text-xs font-label text-on-surface-variant uppercase tracking-widest">Notification Email</label>
-                <input type="email" defaultValue="jayallep@gmail.com" className="w-full bg-surface-variant/50 border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50" />
+                <div className="w-full bg-surface-variant/50 border border-outline-variant/20 rounded-xl px-4 py-3 text-sm text-on-surface">
+                  {user.email}
+                </div>
               </div>
             </div>
-          </section>
 
-          <section className="glass-panel rounded-3xl p-8">
-            <h3 className="text-xl font-headline font-bold mb-6 flex items-center gap-3">
-              <Lock size={20} className="text-secondary" />
-              Security & Privacy
-            </h3>
-            <div className="space-y-6">
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-variant/30 border border-outline-variant/10">
-                <div>
-                  <h4 className="text-sm font-bold">Two-Factor Authentication</h4>
-                  <p className="text-xs text-on-surface-variant mt-1">Add an extra layer of security to your account.</p>
-                </div>
-                <div 
-                  onClick={() => setTfaEnabled(!tfaEnabled)}
-                  className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${tfaEnabled ? 'bg-primary' : 'bg-surface-variant border border-outline-variant/20'}`}
-                >
-                  <motion.div 
-                    animate={{ x: tfaEnabled ? 24 : 4 }}
-                    className={`absolute top-1 w-4 h-4 rounded-full ${tfaEnabled ? 'bg-surface' : 'bg-on-surface-variant'}`} 
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-variant/30 border border-outline-variant/10">
-                <div>
-                  <h4 className="text-sm font-bold">Session Logging</h4>
-                  <p className="text-xs text-on-surface-variant mt-1">Keep track of all operator activities.</p>
-                </div>
-                <div 
-                  onClick={() => setSessionLogging(!sessionLogging)}
-                  className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${sessionLogging ? 'bg-primary' : 'bg-surface-variant border border-outline-variant/20'}`}
-                >
-                  <motion.div 
-                    animate={{ x: sessionLogging ? 24 : 4 }}
-                    className={`absolute top-1 w-4 h-4 rounded-full ${sessionLogging ? 'bg-surface' : 'bg-on-surface-variant'}`} 
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-variant/30 border border-outline-variant/10">
-                <div>
-                  <h4 className="text-sm font-bold">Encrypted Backups</h4>
-                  <p className="text-xs text-on-surface-variant mt-1">Automatically encrypt all exported scan data.</p>
-                </div>
-                <div 
-                  onClick={() => setEncryptedBackups(!encryptedBackups)}
-                  className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${encryptedBackups ? 'bg-primary' : 'bg-surface-variant border border-outline-variant/20'}`}
-                >
-                  <motion.div 
-                    animate={{ x: encryptedBackups ? 24 : 4 }}
-                    className={`absolute top-1 w-4 h-4 rounded-full ${encryptedBackups ? 'bg-surface' : 'bg-on-surface-variant'}`} 
-                  />
-                </div>
-              </div>
+            <div className="mt-8 space-y-6">
               <div className="space-y-4 p-4 rounded-2xl bg-surface-variant/30 border border-outline-variant/10">
                 <div>
                   <h4 className="text-sm font-bold">Interface Theme</h4>
@@ -2745,16 +3007,20 @@ const Settings = () => {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
+                    { id: 'theme-dark', label: 'Dark Mode', color: 'bg-[#ff8aa9]' },
                     { id: 'theme-cyberpunk', label: 'Cyberpunk', color: 'bg-[#d674ff]' },
                     { id: 'theme-matrix', label: 'Matrix', color: 'bg-[#00ff41]' },
                     { id: 'theme-spiderman', label: 'Spider-Man', color: 'bg-[#f11e22]' },
-                    { id: 'theme-galaxy', label: 'Galaxy', color: 'bg-[#00d2ff]' },
+                    { id: 'theme-midnight', label: 'Midnight', color: 'bg-[#00d2ff]' },
                     { id: 'theme-toxic', label: 'Toxic', color: 'bg-[#ccff00]' },
                     { id: 'theme-light', label: 'Light Mode', color: 'bg-white border border-slate-200' },
                   ].map((t) => (
                     <button
                       key={t.id}
-                      onClick={() => setTheme(t.id)}
+                      onClick={() => {
+                        setTheme(t.id);
+                        updateSetting('theme', t.id);
+                      }}
                       className={`flex items-center gap-2 p-2 rounded-lg border transition-all ${
                         theme === t.id ? 'border-primary bg-primary/10' : 'border-outline-variant/20 hover:border-primary/50'
                       }`}
@@ -2765,62 +3031,21 @@ const Settings = () => {
                   ))}
                 </div>
               </div>
+
+              <div className="flex justify-end">
+                <button 
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-6 py-3 bg-error/10 text-error font-headline font-bold rounded-xl border border-error/20 hover:bg-error/20 transition-all"
+                >
+                  <LogOut size={18} />
+                  Terminate Session
+                </button>
+              </div>
             </div>
           </section>
         </div>
 
         <div className="space-y-8">
-          <section className="glass-panel rounded-3xl p-8">
-            <h3 className="text-xl font-headline font-bold mb-6 flex items-center gap-3">
-              <Cpu size={20} className="text-tertiary" />
-              Engine Performance
-            </h3>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <div className="flex justify-between text-[10px] font-label text-on-surface-variant uppercase tracking-widest">
-                  <span>Thread Allocation</span>
-                  <span>12 / 16</span>
-                </div>
-                <div className="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
-                  <div className="h-full w-3/4 bg-tertiary" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-[10px] font-label text-on-surface-variant uppercase tracking-widest">
-                  <span>Memory Buffer</span>
-                  <span>4.2 GB</span>
-                </div>
-                <div className="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
-                  <div className="h-full w-1/2 bg-primary" />
-                </div>
-              </div>
-              
-              {isOptimizing ? (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-mono text-tertiary uppercase">
-                    <span>Optimizing...</span>
-                    <span>{optProgress}%</span>
-                  </div>
-                  <div className="h-1 w-full bg-surface-variant rounded-full overflow-hidden">
-                    <motion.div 
-                      className="h-full bg-tertiary"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${optProgress}%` }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <button 
-                  onClick={startOptimization}
-                  className="w-full py-3 text-xs font-label text-tertiary hover:bg-tertiary/5 rounded-xl transition-colors border border-tertiary/20 flex items-center justify-center gap-2"
-                >
-                  <Zap size={14} />
-                  Optimize Engine
-                </button>
-              )}
-            </div>
-          </section>
-
           <section className="glass-panel rounded-3xl p-8">
             <h3 className="text-xl font-headline font-bold mb-6 flex items-center gap-3">
               <Database size={20} className="text-secondary" />
@@ -2860,21 +3085,88 @@ const Settings = () => {
 // --- Main App ---
 
 export default function App() {
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
   const [scanTarget, setScanTarget] = useState('');
   const [showSplash, setShowSplash] = useState(true);
   const [theme, setTheme] = useState<string>(() => {
     const saved = localStorage.getItem('theme');
-    return saved || 'theme-cyberpunk';
+    return saved || 'theme-dark';
   });
+
+  // Global Data State (Synced with Firestore)
+  const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
+  const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
+  const [scanPresets, setScanPresets] = useState<ScanPreset[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthReady(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Sync Vulnerabilities
+    const qVulns = query(collection(db, 'vulnerabilities'), where('uid', '==', user.uid));
+    const unsubVulns = onSnapshot(qVulns, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Vulnerability));
+      setVulnerabilities(data);
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'vulnerabilities'));
+
+    // Sync Scan History
+    const qHistory = query(collection(db, 'scanHistory'), where('uid', '==', user.uid));
+    const unsubHistory = onSnapshot(qHistory, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as any));
+      setScanHistory(data);
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'scanHistory'));
+
+    // Sync Presets
+    const qPresets = query(collection(db, 'scanPresets'), where('uid', '==', user.uid));
+    const unsubPresets = onSnapshot(qPresets, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ScanPreset));
+      setScanPresets(data);
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'scanPresets'));
+
+    // Sync Logs
+    const qLogs = query(collection(db, 'logs'), where('uid', '==', user.uid));
+    const unsubLogs = onSnapshot(qLogs, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as LogEntry));
+      setLogs(data.sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 50));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'logs'));
+
+    return () => {
+      unsubVulns();
+      unsubHistory();
+      unsubPresets();
+      unsubLogs();
+    };
+  }, [user]);
 
   useEffect(() => {
     localStorage.setItem('theme', theme);
     const root = document.documentElement;
-    const themes = ['theme-cyberpunk', 'theme-matrix', 'theme-spiderman', 'theme-galaxy', 'theme-toxic', 'theme-light'];
+    const themes = ['theme-dark', 'theme-cyberpunk', 'theme-matrix', 'theme-spiderman', 'theme-midnight', 'theme-toxic', 'theme-light'];
     themes.forEach(t => root.classList.remove(t));
     root.classList.add(theme);
   }, [theme]);
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <RefreshCw size={48} className="text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login onLogin={() => {}} />;
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
@@ -2889,7 +3181,7 @@ export default function App() {
         {theme === 'theme-spiderman' && <SpiderWeb />}
         {theme === 'theme-matrix' && <MatrixRain />}
         {theme === 'theme-toxic' && <ToxicGas />}
-        {theme === 'theme-galaxy' && <StarGalaxy />}
+        {theme === 'theme-midnight' && <StarGalaxy />}
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 aurora-blur rounded-full pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/10 aurora-blur rounded-full pointer-events-none" />
         <div className="scanline-overlay" />
@@ -2913,7 +3205,9 @@ export default function App() {
                   {activeScreen === 'dashboard' && (
                     <Dashboard 
                       onNavigate={setActiveScreen} 
-                      onNewScan={() => setActiveScreen('penetration')} 
+                      onNewScan={() => setActiveScreen('penetration')}
+                      vulnerabilities={vulnerabilities}
+                      scanHistory={scanHistory}
                     />
                   )}
                   {activeScreen === 'network' && (
@@ -2922,11 +3216,29 @@ export default function App() {
                       setActiveScreen('penetration');
                     }} />
                   )}
-                  {activeScreen === 'penetration' && <Penetration initialTarget={scanTarget} />}
-                  {activeScreen === 'vulnerabilities' && <Vulnerabilities />}
-                  {activeScreen === 'terminal' && <Terminal />}
+                  {activeScreen === 'penetration' && (
+                    <Penetration 
+                      initialTarget={scanTarget} 
+                      user={user}
+                      scanHistory={scanHistory}
+                      scanPresets={scanPresets}
+                    />
+                  )}
+                  {activeScreen === 'vulnerabilities' && (
+                    <Vulnerabilities 
+                      vulnerabilities={vulnerabilities}
+                    />
+                  )}
+                  {activeScreen === 'terminal' && (
+                    <Terminal 
+                      user={user}
+                      logs={logs}
+                      setScanTarget={setScanTarget}
+                      setActiveScreen={setActiveScreen}
+                    />
+                  )}
                   {activeScreen === 'about' && <AboutDeveloper />}
-                  {activeScreen === 'settings' && <Settings />}
+                  {activeScreen === 'settings' && <Settings user={user} />}
                 </motion.div>
               )}
             </AnimatePresence>

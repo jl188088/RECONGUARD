@@ -33,6 +33,18 @@
   --color-error-container: #a70138;
 }
 
+:root.theme-dark {
+  --color-primary: #ff8aa9;
+  --color-secondary: #d674ff;
+  --color-tertiary: #8ff5ff;
+  --color-background: #0d0e17;
+  --color-surface: #0d0e17;
+  --color-surface-variant: #242532;
+  --color-on-surface: #f1effd;
+  --color-on-surface-variant: #abaab7;
+  --color-outline-variant: #474752;
+}
+
 :root.theme-cyberpunk {
   --color-primary: #d674ff; /* Purple */
   --color-secondary: #ff8aa9; /* Pink */
@@ -92,13 +104,13 @@
   border-color: rgba(241, 30, 34, 0.2);
 }
 
-:root.theme-galaxy {
-  --color-primary: #00d2ff; /* Bright Cyan */
-  --color-secondary: #ff0096; /* Vibrant Magenta */
-  --color-tertiary: #00020a; /* Deep Space Black */
-  --color-background: #00020a;
-  --color-surface: #00020a;
-  --color-surface-variant: #001a4d; /* Deep Navy */
+:root.theme-midnight {
+  --color-primary: #00d2ff;
+  --color-secondary: #3a7bd5;
+  --color-tertiary: #000428;
+  --color-background: #000428;
+  --color-surface: #000428;
+  --color-surface-variant: #004e92;
   --color-on-surface: #ffffff;
   --color-on-surface-variant: #00d2ff;
 }

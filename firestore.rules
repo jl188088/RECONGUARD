@@ -72,8 +72,8 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidVulnerability(data) {
-      return hasRequiredFields(['id', 'target', 'type', 'severity', 'status', 'timestamp', 'uid']) &&
-             data.id is string && data.target is string && data.type is string &&
+      return hasRequiredFields(['target', 'type', 'severity', 'status', 'timestamp', 'uid']) &&
+             data.target is string && data.type is string &&
              data.severity in ['critical', 'high', 'medium', 'low'] &&
              data.status in ['open', 'mitigated', 'ignored'] &&
              data.timestamp is string &&
@@ -81,22 +81,22 @@ service cloud.firestore {
     }
 
     function isValidScanHistory(data) {
-      return hasRequiredFields(['id', 'target', 'date', 'status', 'report', 'uid']) &&
-             data.id is string && data.target is string && data.date is string &&
+      return hasRequiredFields(['target', 'date', 'status', 'report', 'uid']) &&
+             data.target is string && data.date is string &&
              data.status in ['completed', 'failed', 'interrupted'] &&
              data.report is string &&
              data.uid is string;
     }
 
     function isValidScanPreset(data) {
-      return hasRequiredFields(['id', 'name', 'intensity', 'mode', 'uid']) &&
-             data.id is string && data.name is string && data.intensity is string &&
+      return hasRequiredFields(['name', 'intensity', 'mode', 'uid']) &&
+             data.name is string && data.intensity is string &&
              data.mode is string && data.uid is string;
     }
 
     function isValidLog(data) {
-      return hasRequiredFields(['id', 'timestamp', 'level', 'message', 'uid']) &&
-             data.id is string && data.timestamp is string &&
+      return hasRequiredFields(['timestamp', 'level', 'message', 'uid']) &&
+             data.timestamp is string &&
              data.level in ['info', 'warn', 'error', 'success'] &&
              data.message is string && data.uid is string;
     }

@@ -31,43 +31,62 @@ async function startServer() {
     console.log(`[BACKEND] Initiating scan on ${target} with ${intensity} intensity in ${mode} mode.`);
     
     try {
-      // Call the Python scanner script
-      // Note: In a real app, this would be an async process that updates the database
-      const { stdout, stderr } = await execPromise(`python3 scanner.py "${target}" "${intensity}"`);
+      console.log(`[SCAN] Starting scan for target: ${target} (Intensity: ${intensity})`);
       
+      // Try python3 first, then fallback to python
+      let command = `python3 scanner.py "${target}" "${intensity}"`;
+      let stdout, stderr;
+      
+      try {
+        const execResult = await execPromise(command);
+        stdout = execResult.stdout;
+        stderr = execResult.stderr;
+      } catch (e: any) {
+        console.warn(`[SCAN] python3 failed, trying python...`);
+        const execResult = await execPromise(`python scanner.py "${target}" "${intensity}"`);
+        stdout = execResult.stdout;
+        stderr = execResult.stderr;
+      }
+
       if (stderr) {
         console.warn(`[SCANNER WARNING]: ${stderr}`);
       }
 
       const result = JSON.parse(stdout);
+      console.log(`[SCAN] Scan completed successfully for ${target}`);
       res.json({ 
         status: "completed", 
         scanId: `SCAN-${Date.now()}`,
         result 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error(`[SCANNER ERROR]:`, error);
       res.status(500).json({ 
         error: "Scan failed", 
-        details: error instanceof Error ? error.message : String(error) 
+        details: error.message,
+        stdout: error.stdout,
+        stderr: error.stderr
       });
     }
   });
 
   // Terminal command execution endpoint
   app.post("/api/terminal/execute", async (req, res) => {
-    const { command, args } = req.body;
+    const { command: fullCommand } = req.body;
+    
+    // Split command and args
+    const parts = fullCommand.trim().split(' ');
+    const command = parts[0].toLowerCase();
+    const args = parts.slice(1).join(' ');
     
     console.log(`[TERMINAL] Executing command: ${command} with args: ${args}`);
     
-    // Simulate command execution
-    // In a real scenario, this could run actual system commands or specialized scripts
     let response = "";
     let level: "info" | "success" | "warn" | "error" = "info";
 
-    switch (command.toLowerCase()) {
+    switch (command) {
       case "help":
-        response = "Available commands: scan, status, logs, clear, ping, whoami, version";
+        response = "Available commands: scan [target], map [--deep|--quick], vuln [--list|--export], status, logs, clear, ping [target], whoami, version, report [--ai|--pdf]";
         break;
       case "ping":
         response = `PING ${args || "localhost"} (127.0.0.1): 56 data bytes\n64 bytes from 127.0.0.1: icmp_seq=0 ttl=64 time=0.045 ms`;
@@ -83,6 +102,22 @@ async function startServer() {
         response = `Scan initiated on ${args || "unknown target"}. Check Penetration tab for details.`;
         level = "warn";
         break;
+      case "map":
+        response = `Network topology mapping started with mode: ${args || "--quick"}.`;
+        level = "info";
+        break;
+      case "vuln":
+        response = `Vulnerability registry ${args === "--export" ? "exporting..." : "listing findings..."}`;
+        level = "info";
+        break;
+      case "status":
+        response = "Engine: ONLINE | Nodes: 12/12 ACTIVE | Latency: 42ms | Load: 24%";
+        level = "success";
+        break;
+      case "report":
+        response = `Generating ${args === "--ai" ? "AI-powered threat analysis" : "PDF security report"}...`;
+        level = "info";
+        break;
       default:
         response = `Command not found: ${command}`;
         level = "error";
@@ -93,6 +128,27 @@ async function startServer() {
       level,
       timestamp: new Date().toLocaleTimeString() 
     });
+  });
+
+  // Engine optimization endpoint
+  app.post("/api/engine/optimize", async (req, res) => {
+    console.log("[BACKEND] Initiating engine optimization...");
+    
+    // Simulate a complex optimization process
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const optimizationResult = {
+      status: "success",
+      timestamp: new Date().toISOString(),
+      details: {
+        threadsReallocated: 4,
+        memoryBufferCleared: "1.2 GB",
+        cachePruned: "450 MB",
+        performanceGain: "+12%"
+      }
+    };
+    
+    res.json(optimizationResult);
   });
 
   // Vite middleware for development
