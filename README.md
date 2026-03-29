@@ -63,24 +63,24 @@ Ensure your `package.json` has the correct `start` script:
 ```
 
 ## Features Included
-- *AI-Powered Risk Analysis:* Uses *Google Gemini 3 Flash (LLM)* to convert scan data into clear reports with summaries and mitigation steps.
-- *Real-time Network Scanning:* Automated port and service detection via *Node.js/Python* backend.
-- *Interactive Terminal:* Executes recon commands (*scan*, *map*, *vuln*) with live feedback.
-- *Vulnerability Registry:* Centralized storage in *Firebase Firestore* with severity scoring.
-- *Network Visualization:* Interactive topology mapping using *React* and *SVG*.
-- *Theme Management:* Cyberpunk, Matrix, and Spider-Man themes via *Tailwind CSS* and *Framer Motion*.
-- *Secure Data Management:* User authentication and data isolation with *Firebase Auth*.
-- *Scan History:* Full CRUD for scan records, including bulk deletion.
-- *Professional Reporting:* Generates AI-powered PDF reports using *jsPDF* and *html2canvas*.
+- **AI-Powered Risk Analysis** -  Uses *Google Gemini 3 Flash (LLM)* to convert scan data into clear reports with summaries and mitigation steps.
+- **Real-time Network Scanning** -  Automated port and service detection via **Node.js/Python** backend.
+- **Interactive Terminal** -  Executes recon commands (**scan**, **map**, **vuln**) with live feedback.
+- **Vulnerability Registry** -  Centralized storage in **Firebase Firestore** with severity scoring.
+- **Network Visualization** - Interactive topology mapping using **React** and **SVG**.
+- **Theme Management** - Cyberpunk, Matrix, and Spider-Man themes via **Tailwind CSS** and **Framer Motion**.
+- **Secure Data Management** - User authentication and data isolation with *Firebase Auth*.
+- **Scan History** -  Full CRUD for scan records, including bulk deletion.
+- **Professional Reporting** -  Generates AI-powered PDF reports using **jsPDF** and **html2canvas**.
   
 ## Powered By (Tech Stack)
-- **Large Language Model (LLM):** **Google Gemini 3 Flash** via `@google/genai`.
-- **Frontend Framework:** **React 18** with **Vite** for lightning-fast development and optimized builds.
-- **Styling & UI:** **Tailwind CSS** for utility-first styling and **Framer Motion** for high-fidelity animations.
-- **Backend Server:** **Node.js (Express)** handling API requests, terminal command execution, and backend logic.
-- **Database & Authentication:** **Firebase (Firestore & Auth)** for real-time synchronization and secure user sessions.
-- **Scanning Logic:** **Python 3** scripts for simulated network reconnaissance and vulnerability detection.
-- **Icons:** **Lucide React** for a consistent and modern iconography system.
+- **Large Language Model (LLM)** -  **Google Gemini 3 Flash** via `@google/genai`.
+- **Frontend Framework** -  **React 18** with **Vite** for lightning-fast development and optimized builds.
+- **Styling & UI** -  **Tailwind CSS** for utility-first styling and **Framer Motion** for high-fidelity animations.
+- **Backend Server** -  **Node.js (Express)** handling API requests, terminal command execution, and backend logic.
+- **Database & Authentication** -  **Firebase (Firestore & Auth)** for real-time synchronization and secure user sessions.
+- **Scanning Logic** -  **Python 3** scripts for simulated network reconnaissance and vulnerability detection.
+- **Icons** -  **Lucide React** for a consistent and modern iconography system.
 
 
 ##  Future Recommendations
