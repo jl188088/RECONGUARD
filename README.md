@@ -1,4 +1,4 @@
-# RECONGUARD - Advanced Reconnaissance & Vulnerability Management
+# RECONGUARD - Reconnaissance & Vulnerability Management
 
 ## Description
 **RECONGUARD** is a proactive, AI-driven cybersecurity framework designed to **identify, evaluate, and mitigate** security weaknesses in network infrastructures and devices. By simulating the reconnaissance phase of a cyberattack, RECONGUARD allows security professionals and system administrators to discover open ports, map service architectures, and detect critical vulnerabilities *before* they can be exploited by malicious actors. 
