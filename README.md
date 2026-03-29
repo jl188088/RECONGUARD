@@ -9,38 +9,9 @@ At its core, RECONGUARD acts as an automated **"Digital Red Team,"** combining t
 The primary purpose of **RECONGUARD** is to provide a comprehensive, automated, and AI-powered **Penetration Testing** and reconnaissance framework. It streamlines the process of identifying network assets, detecting open ports, mapping services, and analyzing potential vulnerabilities with high precision.
 
 ## Project Structure
-```javascript
-{
-  "root": {
-    "src/": {
-      "App.tsx": "Main application logic, UI components, and state management",
-      "firebase.ts": "Firebase initialization for Authentication and Firestore",
-      "index.css": "Global styles, theme definitions, and Tailwind CSS imports",
-      "main.tsx": "React entry point"
-    },
-    "backend/": {
-      "engine.py": "Core scanning engine implementation",
-      "network_analyzer.py": "Network topology and asset analysis",
-      "penetration_tester.py": "Vulnerability exploitation simulation logic",
-      "scanner.py": "Python-based reconnaissance orchestration",
-      "vulnerability_db.py": "Local database for CVE references and severity scoring"
-    },
-    "server.ts": "Express backend server for API endpoints and terminal command execution",
-    "scanner.py": "Primary Python scanning script called by the backend",
-    "backend_logic.py": "Core vulnerability assessment and risk scoring logic",
-    "firestore.rules": "Firebase Security Rules for data protection and access control",
-    "firebase-blueprint.json": "Firestore data structure and entity definitions",
-    "firebase-applet-config.json": "Firebase project credentials and configuration",
-    "metadata.json": "Application metadata and required frame permissions",
-    "package.json": "Project dependencies, scripts, and build configuration",
-    "tsconfig.json": "TypeScript compiler configuration",
-    "vite.config.ts": "Vite build tool and development server configuration",
-    "index.html": "Primary HTML entry point",
-    ".env.example": "Template for required environment variables",
-    ".gitignore": "Paths and files to be ignored by version control"
-  }
-}
-```
+
+<img width="936" height="589" alt="Screenshot 2026-03-30 001305" src="https://github.com/user-attachments/assets/ddf8ab85-9fdc-4242-9656-5570ed2a51fa" />
+
 
 ## Deployment on Railway
 Railway is the recommended platform for deploying RECONGUARD due to its native support for multi-language environments (Node.js + Python).
