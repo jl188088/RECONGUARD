@@ -24,7 +24,7 @@ reconguard-toolkit/
 │   ├── analyzer.py         # Risk scoring engine
 │   ├── banner.py           # Banner grabbing
 │   ├── cve_db.py           # CVE mapping (local DB/mock)
-│   ├── ai_report.py        # AI analysis (Ollama)
+│   ├── ai_report.py        # AI analysis (Gemini)
 │   ├── pdf_report.py       # PDF report generator
 │
 ├── dashboard/              # Web UI (Flask frontend)
