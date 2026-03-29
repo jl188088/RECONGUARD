@@ -85,9 +85,6 @@ Advanced AI for attack path prediction and risk prioritization
 Containerized deployment (Docker) for scalability
 SOC-level dashboard with real-time security visualization
 
-### Author & Developer
-Jayalle Pangilinan
-
 ## Setup and How to Run
 
 ### Prerequisites
@@ -120,3 +117,7 @@ The application will be accessible at `http://localhost:3000`.
 npm run build
 npm start
 ```
+
+### Author & Developer
+Jayalle Pangilinan
+
