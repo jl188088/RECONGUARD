@@ -119,6 +119,6 @@ npm start
 ```
 
 ## 
-###Author & Developer
+### Author & Developer
 Jayalle Pangilinan
 
