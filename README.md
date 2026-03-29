@@ -84,12 +84,12 @@ Ensure your `package.json` has the correct `start` script:
 
 
 ##  Future Recommendations
-Real-time threat intelligence integration (live CVE/NVD data)
-Scan history with analytics and risk trend tracking
-Multi-target and subnet scanning support
-Advanced AI for attack path prediction and risk prioritization
-Containerized deployment (Docker) for scalability
-SOC-level dashboard with real-time security visualization
+- Real-time threat intelligence integration (live CVE/NVD data)
+- Scan history with analytics and risk trend tracking
+- Multi-target and subnet scanning support
+- Advanced AI for attack path prediction and risk prioritization
+- Containerized deployment (Docker) for scalability
+- SOC-level dashboard with real-time security visualization
 
 ## Setup and How to Run
 
