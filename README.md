@@ -82,15 +82,6 @@ Ensure your `package.json` has the correct `start` script:
 - **Scanning Logic** -  **Python 3** scripts for simulated network reconnaissance and vulnerability detection.
 - **Icons** -  **Lucide React** for a consistent and modern iconography system.
 
-
-##  Future Recommendations
-- Real-time threat intelligence integration (live CVE/NVD data)
-- Scan history with analytics and risk trend tracking
-- Multi-target and subnet scanning support
-- Advanced AI for attack path prediction and risk prioritization
-- Containerized deployment (Docker) for scalability
-- SOC-level dashboard with real-time security visualization
-
 ## Setup and How to Run
 
 ### Prerequisites
@@ -123,6 +114,14 @@ The application will be accessible at `http://localhost:3000`.
 npm run build
 npm start
 ```
+
+##  Future Recommendations
+- Real-time threat intelligence integration (live CVE/NVD data)
+- Scan history with analytics and risk trend tracking
+- Multi-target and subnet scanning support
+- Advanced AI for attack path prediction and risk prioritization
+- Containerized deployment (Docker) for scalability
+- SOC-level dashboard with real-time security visualization
 
 ## 
 ### Author & Developer
