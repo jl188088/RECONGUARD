@@ -63,16 +63,16 @@ Ensure your `package.json` has the correct `start` script:
 ```
 
 ## Features Included
-- **AI-Powered Risk Analysis:** Leverages **Google Gemini 3 Flash (LLM)** to transform raw scan data into professional security reports, providing executive summaries and actionable mitigation steps.
-- **Real-time Network Scanning:** Automated port discovery and service detection powered by a **Node.js/Python** backend orchestration.
-- **Enhanced Interactive Terminal:** A high-performance terminal interface for executing reconnaissance commands (`scan`, `map`, `vuln`, etc.) with real-time feedback.
-- **Vulnerability Registry:** A persistent, centralized database of identified security flaws stored in **Firebase Firestore** with severity scoring.
-- **Network Topology Visualization:** Dynamic, interactive mapping of network assets and their relationships using **React** and **SVG**.
-- **Advanced Theme Management:** Immersive system aesthetics (Cyberpunk, Matrix, Spider-Man) built with **Tailwind CSS** and **Framer Motion**.
-- **Secure Data Management:** Robust user authentication and per-user data isolation provided by **Firebase Auth**.
-- **Scan History Management:** Full CRUD operations for scan records, including individual deletion and bulk purging.
-- **Professional Reporting:** On-demand generation of AI-powered PDF reports using **jsPDF** and **html2canvas**.
-
+- *AI-Powered Risk Analysis:* Uses *Google Gemini 3 Flash (LLM)* to convert scan data into clear reports with summaries and mitigation steps.
+- *Real-time Network Scanning:* Automated port and service detection via *Node.js/Python* backend.
+- *Interactive Terminal:* Executes recon commands (*scan*, *map*, *vuln*) with live feedback.
+- *Vulnerability Registry:* Centralized storage in *Firebase Firestore* with severity scoring.
+- *Network Visualization:* Interactive topology mapping using *React* and *SVG*.
+- *Theme Management:* Cyberpunk, Matrix, and Spider-Man themes via *Tailwind CSS* and *Framer Motion*.
+- *Secure Data Management:* User authentication and data isolation with *Firebase Auth*.
+- *Scan History:* Full CRUD for scan records, including bulk deletion.
+- *Professional Reporting:* Generates AI-powered PDF reports using *jsPDF* and *html2canvas*.
+  
 ## Powered By (Tech Stack)
 - **Large Language Model (LLM):** **Google Gemini 3 Flash** via `@google/genai`.
 - **Frontend Framework:** **React 18** with **Vite** for lightning-fast development and optimized builds.
