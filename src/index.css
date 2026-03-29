@@ -1,0 +1,150 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&display=swap');
+
+@theme {
+  --font-headline: "Space Grotesk", sans-serif;
+  --font-body: "Manrope", sans-serif;
+  --font-label: "Space Grotesk", sans-serif;
+
+  --color-primary: #ff8aa9;
+  --color-primary-dim: #e4006c;
+  --color-primary-container: #ff719b;
+  
+  --color-secondary: #d674ff;
+  --color-secondary-dim: #bb00fc;
+  
+  --color-tertiary: #8ff5ff;
+  --color-tertiary-dim: #00deec;
+  --color-tertiary-container: #00eefc;
+
+  --color-background: #0d0e17;
+  --color-surface: #0d0e17;
+  --color-surface-bright: #2a2b3a;
+  --color-surface-dim: #0d0e17;
+  --color-surface-variant: #242532;
+  
+  --color-on-surface: #f1effd;
+  --color-on-surface-variant: #abaab7;
+  
+  --color-outline: #757480;
+  --color-outline-variant: #474752;
+  
+  --color-error: #ff6e84;
+  --color-error-container: #a70138;
+}
+
+:root.theme-cyberpunk {
+  --color-primary: #d674ff; /* Purple */
+  --color-secondary: #ff8aa9; /* Pink */
+  --color-tertiary: #8ff5ff; /* Cyan */
+  --color-background: #0d0e17;
+  --color-surface: #0d0e17;
+  --color-surface-variant: #242532;
+  --color-on-surface: #f1effd;
+}
+
+:root.theme-light {
+  --color-primary: #7c3aed; /* Violet 600 */
+  --color-secondary: #db2777; /* Pink 600 */
+  --color-tertiary: #0891b2; /* Cyan 600 */
+  --color-background: #f8fafc; /* Slate 50 */
+  --color-surface: #ffffff;
+  --color-surface-variant: #f1f5f9; /* Slate 100 */
+  --color-on-surface: #0f172a; /* Slate 900 */
+  --color-on-surface-variant: #475569; /* Slate 600 */
+  --color-outline-variant: #e2e8f0; /* Slate 200 */
+}
+
+:root.theme-matrix {
+  --color-primary: #00ff41;
+  --color-secondary: #008f11;
+  --color-tertiary: #003b00;
+  --color-background: #000000;
+  --color-surface: #050505;
+  --color-surface-variant: #0a0a0a;
+  --color-on-surface: #00ff41;
+  --color-on-surface-variant: #008f11;
+  --color-outline-variant: #003b00;
+}
+
+:root.theme-spiderman {
+  --color-primary: #f11e22;
+  --color-secondary: #1a4e8a;
+  --color-tertiary: #ffffff;
+  --color-background: #050505;
+  --color-surface: #0a0a0a;
+  --color-surface-variant: #151515;
+  --color-on-surface: #ffffff;
+  --color-on-surface-variant: #f11e22;
+  --color-outline-variant: #1a4e8a;
+  
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(241, 30, 34, 0.05) 0%, transparent 70%),
+    linear-gradient(rgba(241, 30, 34, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(241, 30, 34, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 40px 40px, 40px 40px;
+  
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23f11e22' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 12 9 9'/%3E%3Cpath d='m12 12-9 9'/%3E%3Cpath d='m12 12 9-9'/%3E%3Cpath d='m12 12-9-9'/%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3Cpath d='M12 2v20'/%3E%3Cpath d='M2 12h20'/%3E%3C/svg%3E"), auto;
+}
+
+:root.theme-spiderman .glass-panel {
+  box-shadow: 0 0 15px rgba(241, 30, 34, 0.1);
+  border-color: rgba(241, 30, 34, 0.2);
+}
+
+:root.theme-galaxy {
+  --color-primary: #00d2ff; /* Bright Cyan */
+  --color-secondary: #ff0096; /* Vibrant Magenta */
+  --color-tertiary: #00020a; /* Deep Space Black */
+  --color-background: #00020a;
+  --color-surface: #00020a;
+  --color-surface-variant: #001a4d; /* Deep Navy */
+  --color-on-surface: #ffffff;
+  --color-on-surface-variant: #00d2ff;
+}
+
+:root.theme-toxic {
+  --color-primary: #ccff00;
+  --color-secondary: #ff9900;
+  --color-tertiary: #333333;
+  --color-background: #0a0a0a;
+  --color-surface: #111111;
+  --color-surface-variant: #222222;
+  --color-on-surface: #ccff00;
+  --color-on-surface-variant: #ff9900;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-on-surface font-body selection:bg-primary/30 selection:text-primary transition-colors duration-300;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-surface/40 backdrop-blur-xl border border-outline-variant/20;
+  }
+  
+  .aurora-blur {
+    filter: blur(120px);
+  }
+  
+  .neon-glow-primary {
+    box-shadow: 0 0 20px rgba(255, 138, 169, 0.2);
+  }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}
+
+.scanline-overlay {
+  background: linear-gradient(to bottom, transparent, rgba(143, 245, 255, 0.05) 50%, transparent);
+  height: 100px;
+  width: 100%;
+  position: absolute;
+  z-index: 5;
+  animation: scanline 10s linear infinite;
+  pointer-events: none;
+}
