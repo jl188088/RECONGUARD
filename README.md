@@ -10,50 +10,42 @@ The primary purpose of **RECONGUARD** is to provide a comprehensive, automated, 
 
 ## Project Structure
 ```javascript
-{
-  "root": {
-    "src/": {
-      "App.tsx": "Main application logic, UI components, and state management",
-      "firebase.ts": "Firebase initialization for Authentication and Firestore",
-      "index.css": "Global styles, theme definitions, and Tailwind CSS imports",
-      "main.tsx": "React entry point"
-    },
-    "backend/": {
-      "engine.py": "Core scanning engine implementation",
-      "network_analyzer.py": "Network topology and asset analysis",
-      "penetration_tester.py": "Vulnerability exploitation simulation logic",
-      "scanner.py": "Python-based reconnaissance orchestration",
-      "vulnerability_db.py": "Local database for CVE references and severity scoring"
-    },
-    "server.ts": "Express backend server for API endpoints and terminal command execution",
-    "scanner.py": "Primary Python scanning script called by the backend",
-    "backend_logic.py": "Core vulnerability assessment and risk scoring logic",
-    "firestore.rules": "Firebase Security Rules for data protection and access control",
-    "firebase-blueprint.json": "Firestore data structure and entity definitions",
-    "firebase-applet-config.json": "Firebase project credentials and configuration",
-    "metadata.json": "Application metadata and required frame permissions",
-    "package.json": "Project dependencies, scripts, and build configuration",
-    "tsconfig.json": "TypeScript compiler configuration",
-    "vite.config.ts": "Vite build tool and development server configuration",
-    "index.html": "Primary HTML entry point",
-    ".env.example": "Template for required environment variables",
-    ".gitignore": "Paths and files to be ignored by version control"
-  }
-}
+reconguard-toolkit/
+│
+├── app.py                  # Flask dashboard entry point
+├── main.py                 # CLI version (terminal pentest tool)
+├── requirements.txt        # Dependencies (Flask, colorama, etc.)
+├── README.md               # Project documentation
+├── .gitignore
+│
+├── core/                   # Core pentesting engine
+│   ├── __init__.py
+│   ├── scanner.py          # Port scanning logic
+│   ├── analyzer.py         # Risk scoring engine
+│   ├── banner.py           # Banner grabbing
+│   ├── cve_db.py           # CVE mapping (local DB/mock)
+│   ├── ai_report.py        # AI analysis (Ollama)
+│   ├── pdf_report.py       # PDF report generator
+│
+├── dashboard/              # Web UI (Flask frontend)
+│   ├── templates/
+│   │   └── index.html      # Dashboard UI
+│   ├── static/
+│   │   ├── css/
+│   │   └── js/
+│
+├── reports/                # Generated reports
+│   ├── pentest_<ip>.md
+│   ├── pentest_<ip>.pdf
+│
+├── data/                   # Optional (future upgrade)
+│   ├── cve_data.json       # Local CVE dataset
+│   ├── scans.db            # SQLite database (future)
+│
+└── docs/                   # Documentation (optional)
+    ├── architecture.md
+    ├── screenshots/
 ```
-
-## Deployment on Railway
-Railway is the recommended platform for deploying RECONGUARD due to its native support for multi-language environments (Node.js + Python).
-
-### Steps to Deploy:
-1. **Prepare your Repository:** Ensure your code is pushed to a GitHub repository.
-2. **Create a New Project:** Log in to [Railway.app](https://railway.app/) and click **"New Project"**.
-3. **Connect GitHub:** Select **"Deploy from GitHub repo"** and choose your RECONGUARD repository.
-4. **Configure Variables:** In the Railway dashboard, go to the **Variables** tab and add:
-   - `GEMINI_API_KEY`: Your Google Gemini API key.
-   - `NODE_ENV`: `production`
-5. **Automatic Build:** Railway's *Nixpacks* will detect both `package.json` and your Python files. It will automatically install Node.js and Python 3.
-6. **Networking:** Railway will automatically assign a public URL to your app. Ensure your Express server is listening on `0.0.0.0` and the port provided by the `PORT` environment variable (Railway handles this automatically if you use `process.env.PORT || 3000`).
 
 ### Important Note:
 Ensure your `package.json` has the correct `start` script:
@@ -84,11 +76,6 @@ Ensure your `package.json` has the correct `start` script:
 - **Scanning Logic:** **Python 3** scripts for simulated network reconnaissance and vulnerability detection.
 - **Icons:** **Lucide React** for a consistent and modern iconography system.
 
-## Recent Updates (v2.4.0)
-- **Terminal Overhaul:** Improved command parsing in `server.ts` to handle arguments. Integrated the `scan` command directly with the penetration testing engine. Added a `clear` command to purge terminal logs.
-- **Risk Analysis Refinement:** Streamlined the UI by removing redundant labels. Added "Purge History" and individual delete functionality to the Scan History section for better data management.
-- **Settings Simplification:** Removed "Security & Privacy" and "Engine Performance" sections to focus on core configurations. Consolidated theme selection into the "Profile Configuration" area.
-- **Backend Robustness:** Enhanced the terminal execution API to provide more accurate feedback and support parallel command processing.
 
 ## Setup and How to Run
 
