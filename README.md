@@ -1,5 +1,11 @@
 # RECONGUARD - Advanced Reconnaissance & Vulnerability System
 
+
+
+https://github.com/user-attachments/assets/2e3c081f-e7e2-48ef-b472-d37bc2c9087e
+
+
+
 ## Description
 **RECONGUARD** is a proactive, AI-driven cybersecurity framework designed to **identify, evaluate, and mitigate** security weaknesses in network infrastructures and devices. By simulating the reconnaissance phase of a cyberattack, RECONGUARD allows security professionals and system administrators to discover open ports, map service architectures, and detect critical vulnerabilities *before* they can be exploited by malicious actors. 
 
