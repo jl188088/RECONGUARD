@@ -8,7 +8,7 @@ At its core, RECONGUARD acts as an automated **"Digital Red Team,"** combining t
 ## Main Purpose
 The primary purpose of **RECONGUARD** is to provide a comprehensive, automated, and AI-powered **Penetration Testing** and reconnaissance framework. It streamlines the process of identifying network assets, detecting open ports, mapping services, and analyzing potential vulnerabilities with high precision.
 
-## Project Structure
+##
 
 <img width="936" height="589" alt="Screenshot 2026-03-30 001305" src="https://github.com/user-attachments/assets/ddf8ab85-9fdc-4242-9656-5570ed2a51fa" />
 
