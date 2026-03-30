@@ -69,7 +69,7 @@ Ensure your `package.json` has the correct `start` script:
 - **Vulnerability Registry** -  Centralized storage in **Firebase Firestore** with severity scoring.
 - **Network Visualization** - Interactive topology mapping using **React** and **SVG**.
 - **Theme Management** - Cyberpunk, Matrix, and Spider-Man themes via **Tailwind CSS** and **Framer Motion**.
-- **Secure Data Management** - User authentication and data isolation with *Firebase Auth*.
+- **Secure Data Management** - User authentication and data isolation with **Firebase Auth**.
 - **Scan History** -  Full CRUD for scan records, including bulk deletion.
 - **Professional Reporting** -  Generates AI-powered PDF reports using **jsPDF** and **html2canvas**.
   
