@@ -44,7 +44,7 @@ RECONGUARD/
 ├── src/
 │   ├── App.tsx                 # main React component (UI logic)
 │   ├── main.tsx                # app entry point rendering React app
-│   ├── firebase.ts             # connects frontend to firebase services
+│   ├── firebase.ts             # connects frontend to Firebase services
 │   └── index.css               # global styles for the application
 ```
 
