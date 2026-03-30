@@ -63,7 +63,7 @@ Ensure your `package.json` has the correct `start` script:
 ```
 
 ## Features Included
-- **AI-Powered Risk Analysis** -  Uses *Google Gemini 3 Flash (LLM)* to convert scan data into clear reports with summaries and mitigation steps.
+- **AI-Powered Risk Analysis** -  Uses **Google Gemini 3 Flash (LLM)** to convert scan data into clear reports with summaries and mitigation steps.
 - **Real-time Network Scanning** -  Automated port and service detection via **Node.js/Python** backend.
 - **Interactive Terminal** -  Executes recon commands (**scan**, **map**, **vuln**) with live feedback.
 - **Vulnerability Registry** -  Centralized storage in **Firebase Firestore** with severity scoring.
