@@ -16,41 +16,36 @@ The primary purpose of **RECONGUARD** is to provide a comprehensive, automated, 
 
 ## Project Structure
 ```javascript
-reconguard-toolkit/
+RECONGUARD/
 │
-├── app.py                  # Flask dashboard entry point
-├── main.py                 # CLI version (terminal pentest tool)
-├── requirements.txt        # Dependencies (Flask, colorama, etc.)
-├── README.md               # Project documentation
-├── .gitignore
+├── .env.example              
+├── .gitignore         
+├── README.md                  
+├── backend_logic.py            # main Python controller for backend operations
+├── scanner.py                  # entry script for running scans from CLI
+├── server.ts                   # node.js server handling API requests
+├── index.html                
+├── metadata.json               # stores app-related metadata/configuration
+├── package.json                # node project dependencies and scripts
+├── package-lock.json           # locks exact dependency versions
+├── tsconfig.json              
+├── vite.config.ts              # vite build tool configuration
+├── firebase-applet-config.json # firebase app configuration settings
+├── firebase-blueprint.json     # firebase project structure/template
+├── firestore.rules             # security rules for Firebase database
 │
-├── core/                   # Core pentesting engine
-│   ├── __init__.py
-│   ├── scanner.py          # Port scanning logic
-│   ├── analyzer.py         # Risk scoring engine
-│   ├── banner.py           # Banner grabbing
-│   ├── cve_db.py           # CVE mapping (local DB/mock)
-│   ├── ai_report.py        # AI analysis (Gemini)
-│   ├── pdf_report.py       # PDF report generator
+├── backend/
+│   ├── engine.py               # core engine coordinating scan processes
+│   ├── network_analyzer.py     # analyzes network traffic and behavior
+│   ├── penetration_tester.py   # simulates attacks to find vulnerabilities
+│   ├── scanner.py              # handles detailed scanning logic
+│   └── vulnerability_db.py     # stores and retrieves known vulnerabilities
 │
-├── dashboard/              # Web UI (Flask frontend)
-│   ├── templates/
-│   │   └── index.html      # Dashboard UI
-│   ├── static/
-│   │   ├── css/
-│   │   └── js/
-│
-├── reports/                # Generated reports
-│   ├── pentest_<ip>.md
-│   ├── pentest_<ip>.pdf
-│
-├── data/                   # Optional (future upgrade)
-│   ├── cve_data.json       # Local CVE dataset
-│   ├── scans.db            # SQLite database (future)
-│
-└── docs/                   # Documentation (optional)
-    ├── architecture.md
-    ├── screenshots/
+├── src/
+│   ├── App.tsx                 # main React component (UI logic)
+│   ├── main.tsx                # app entry point rendering React app
+│   ├── firebase.ts             # connects frontend to firebase services
+│   └── index.css               # global styles for the application
 ```
 
 ### Important Note:
